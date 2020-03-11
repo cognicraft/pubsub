@@ -10,13 +10,13 @@ func TestSubject(t *testing.T) {
 	pub.Publish("bäm", nil)
 
 	if len(rec.Messages) != 1 {
-		t.Fail()
+		t.Errorf("want: %d, got: %d", 1, len(rec.Messages))
 	}
 	if rec.Messages[0].Topic != "bäm" {
-		t.Fail()
+		t.Errorf("want: %s, got: %s", "bäm", rec.Messages[0].Topic)
 	}
-	if rec.Messages[0].Data == nil {
-		t.Fail()
+	if rec.Messages[0].Data != nil {
+		t.Errorf("want: %#v, got: %#v", nil, rec.Messages[0].Data)
 	}
 
 	sub.Cancel()

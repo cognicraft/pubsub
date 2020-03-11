@@ -1,42 +1,60 @@
 package pubsub
 
 import (
+	"strconv"
 	"sync"
+	"time"
 )
 
 func NewPublisher() Publisher {
 	return &publisher{
-		subscriptions: map[int]*subscription{},
+		queue:         NewSimpleQueue(),
+		nextMessageID: GeneratePrefixedIDs("msg"),
+		nextSubID:     GeneratePrefixedIDs("sub"),
+		subscriptions: map[string]*subscription{},
 	}
 }
 
 type publisher struct {
+	queue         Queue
+	nextMessageID func() string
+	nextSubID     func() string
+
 	mu            sync.RWMutex
-	next          int
-	subscriptions map[int]*subscription
+	subscriptions map[string]*subscription
 }
 
-func (p *publisher) Publish(topic Topic, data interface{}) {
+func (p *publisher) Publish(topic Topic, data interface{}) error {
+	m := Message{
+		ID:      p.nextMessageID(),
+		Topic:   topic,
+		Data:    data,
+		Expires: time.Now(),
+	}
+	return p.publish(m)
+}
+
+func (p *publisher) publish(m Message) error {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	for _, s := range p.subscriptions {
-		if s.filter.Accept(topic) {
-			s.callback(topic, data)
+		if s.filter.Accept(m.Topic) {
+			s.callback(m.Topic, m.Data)
 		}
 	}
+	return nil
 }
 
 func (p *publisher) Subscribe(topic Topic, callback func(topic Topic, data interface{})) Subscription {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	id := p.next
+	id := p.nextSubID()
 	s := &subscription{publisher: p, id: id, filter: topic, callback: callback}
 	p.subscriptions[id] = s
-	p.next++
 	return s
 }
 
-func (p *publisher) cancelSubscription(id int) {
+func (p *publisher) cancelSubscription(id string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	delete(p.subscriptions, id)
@@ -44,7 +62,7 @@ func (p *publisher) cancelSubscription(id int) {
 
 type subscription struct {
 	publisher *publisher
-	id        int
+	id        string
 	filter    Topic
 	callback  func(topic Topic, data interface{})
 }
@@ -54,10 +72,30 @@ func (s *subscription) Cancel() {
 }
 
 type Publisher interface {
-	Publish(topic Topic, data interface{})
+	Publish(topic Topic, data interface{}) error
 	Subscribe(topic Topic, callback func(topic Topic, data interface{})) Subscription
 }
 
 type Subscription interface {
 	Cancel()
+}
+
+type Message struct {
+	ID      string
+	Topic   Topic
+	Data    interface{}
+	Expires time.Time
+	Retain  bool
+}
+
+func GeneratePrefixedIDs(prefix string) func() string {
+	pre := []byte(prefix + ":")
+	var c int64
+	var mu sync.Mutex
+	return func() string {
+		mu.Lock()
+		defer mu.Unlock()
+		c++
+		return string(strconv.AppendInt(pre, c, 10))
+	}
 }
