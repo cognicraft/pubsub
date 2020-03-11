@@ -16,17 +16,17 @@ type publisher struct {
 	subscriptions map[int]*subscription
 }
 
-func (p *publisher) Publish(topic Topic, args ...interface{}) {
+func (p *publisher) Publish(topic Topic, data interface{}) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	for _, s := range p.subscriptions {
 		if s.filter.Accept(topic) {
-			s.callback(topic, args...)
+			s.callback(topic, data)
 		}
 	}
 }
 
-func (p *publisher) Subscribe(topic Topic, callback func(Topic, ...interface{})) Subscription {
+func (p *publisher) Subscribe(topic Topic, callback func(topic Topic, data interface{})) Subscription {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	id := p.next
@@ -46,7 +46,7 @@ type subscription struct {
 	publisher *publisher
 	id        int
 	filter    Topic
-	callback  func(Topic, ...interface{})
+	callback  func(topic Topic, data interface{})
 }
 
 func (s *subscription) Cancel() {
@@ -54,8 +54,8 @@ func (s *subscription) Cancel() {
 }
 
 type Publisher interface {
-	Publish(topic Topic, args ...interface{})
-	Subscribe(topic Topic, callback func(Topic, ...interface{})) Subscription
+	Publish(topic Topic, data interface{})
+	Subscribe(topic Topic, callback func(topic Topic, data interface{})) Subscription
 }
 
 type Subscription interface {

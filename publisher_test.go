@@ -7,7 +7,7 @@ func TestSubject(t *testing.T) {
 	pub := NewPublisher()
 	sub := pub.Subscribe("#", rec.Record)
 
-	pub.Publish("bäm")
+	pub.Publish("bäm", nil)
 
 	if len(rec.Messages) != 1 {
 		t.Fail()
@@ -15,14 +15,14 @@ func TestSubject(t *testing.T) {
 	if rec.Messages[0].Topic != "bäm" {
 		t.Fail()
 	}
-	if len(rec.Messages[0].Args) > 0 {
+	if rec.Messages[0].Data == nil {
 		t.Fail()
 	}
 
 	sub.Cancel()
 	rec.Reset()
 
-	pub.Publish("bäm")
+	pub.Publish("bäm", nil)
 
 	if len(rec.Messages) != 0 {
 		t.Fail()

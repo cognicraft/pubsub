@@ -8,8 +8,8 @@ type Recorder struct {
 	Messages []Message
 }
 
-func (r *Recorder) Record(topic Topic, args ...interface{}) {
-	r.Messages = append(r.Messages, Message{Topic: topic, Args: args})
+func (r *Recorder) Record(topic Topic, data interface{}) {
+	r.Messages = append(r.Messages, Message{Topic: topic, Data: data})
 }
 
 func (r *Recorder) Reset() {
@@ -18,5 +18,5 @@ func (r *Recorder) Reset() {
 
 type Message struct {
 	Topic Topic
-	Args  []interface{}
+	Data  interface{}
 }
