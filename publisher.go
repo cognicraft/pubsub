@@ -9,8 +9,8 @@ import (
 func NewPublisher() Publisher {
 	return &publisher{
 		queue:         NewSimpleQueue(),
-		nextMessageID: GeneratePrefixedIDs("msg"),
-		nextSubID:     GeneratePrefixedIDs("sub"),
+		nextMessageID: GeneratePrefixedID("msg-"),
+		nextSubID:     GeneratePrefixedID("sub-"),
 		subscriptions: map[string]*subscription{},
 	}
 }
@@ -25,13 +25,12 @@ type publisher struct {
 }
 
 func (p *publisher) Publish(topic Topic, data interface{}) error {
-	m := Message{
+	return p.publish(Message{
 		ID:      p.nextMessageID(),
 		Topic:   topic,
 		Data:    data,
 		Expires: time.Now(),
-	}
-	return p.publish(m)
+	})
 }
 
 func (p *publisher) publish(m Message) error {
@@ -88,7 +87,7 @@ type Message struct {
 	Retain  bool
 }
 
-func GeneratePrefixedIDs(prefix string) func() string {
+func GeneratePrefixedID(prefix string) func() string {
 	pre := []byte(prefix + ":")
 	var c int64
 	var mu sync.Mutex
