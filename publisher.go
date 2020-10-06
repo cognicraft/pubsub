@@ -64,6 +64,36 @@ func (s *subscription) Cancel() {
 	s.publisher.cancelSubscription(s.id)
 }
 
+func NewSubscriptions(subs ...Subscription) *Subscriptions {
+	s := &Subscriptions{
+		subs: subs,
+	}
+	return s
+}
+
+type Subscriptions struct {
+	subs []Subscription
+}
+
+func (s *Subscriptions) Add(sub Subscription) {
+	s.subs = append(s.subs, sub)
+}
+
+func (s *Subscriptions) Remove(sub Subscription) {
+	for i, cSub := range s.subs {
+		if cSub == sub {
+			s.subs = append(s.subs[:i], s.subs[i+1:]...)
+			return
+		}
+	}
+}
+
+func (s *Subscriptions) Cancel() {
+	for _, sub := range s.subs {
+		sub.Cancel()
+	}
+}
+
 func GeneratePrefixedID(prefix string) func() string {
 	pre := []byte(prefix + ":")
 	var c int64
